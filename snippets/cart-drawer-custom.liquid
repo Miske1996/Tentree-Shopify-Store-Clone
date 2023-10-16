@@ -1,0 +1,130 @@
+{% comment %}
+  Renders Custom cart drawer
+
+  Usage:
+  {% render 'cart-drawer-custom' %}
+{% endcomment %}
+{%- liquid
+  assign th_st = settings
+  assign shipping_rate = th_st.shipping_rate | times: 100 | default: 0
+  assign shipping_rate_price = shipping_rate | money
+-%}
+
+{{ 'component-cart-drawer-custom.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'cart-drawer-custom.js' | asset_url }}" defer="defer"></script>
+
+<style>
+  .custom_drawer {
+    visibility: hidden;
+  }
+</style>
+<cart-drawer-custom class="custom_drawer" id="CartDrawerCustom">
+  <div id="CartDrawer" class="cart-drawer">
+    <div id="CartDrawer-Overlay" class="cart-drawer-custom__overlay"></div>
+    <div class="custom_drawer__inner">
+      <div class="header_cart_drawer_container">
+        <div class="close_cart_drawer_button" onclick="this.closest('cart-drawer-custom').close()">x</div>
+        <div class="cart_title"><h1>Your Cart</h1></div>
+        {% if shipping_rate <= cart.total_price %}
+          <div class="free_shipping_threshold_text">
+            <h1>Congrats! You've unlocked <span>free shipping.</span></h1>
+          </div>
+          <div class="progress_bar_shipping_threshold"><div class="overlay_progress" style="width: 100%;"></div></div>
+        {% else %}
+          {%- liquid
+            assign items_total_price = cart.total_price
+          -%}
+          <div class="free_shipping_threshold_text">
+            <h1>
+              Spend {{ shipping_rate | minus: items_total_price | money_with_currency }} for <span>free shipping.</span>
+            </h1>
+          </div>
+          <div class="progress_bar_shipping_threshold">
+            <div
+              class="overlay_progress"
+              style="width:{{ items_total_price |  times: 100 | divided_by: shipping_rate | round }}%"
+            ></div>
+          </div>
+        {% endif %}
+      </div>
+      <div class="cart_drawer_main_content_container">
+        {% if cart == empty %}
+          <div class="empty_cart_container">
+            <h1 class="header_1">Your cart is empty !</h1>
+            <a href="{{ routes.all_products_collection_url }}">CONTINUE SHOPPING</a>
+          </div>
+        {% else %}
+          <form
+            action="{{ routes.cart_url }}"
+            id="CartDrawerCustom-Form"
+            method="post"
+          >
+            <cart-drawer-custom-items id="cart_drawer_custom_items" class="cart_drawer_custom_items">
+              <div class="cart_items_drawer_custom">
+                {%- for item in cart.items -%}
+                  <div class="cart_item_custom" id="CartDrawerCustom-Item-{{ item.index | plus: 1 }}">
+                    <div class="image_product"><img src="{{ item.image | image_url }}" alt=""></div>
+                    <div class="cart__middle_section">
+                      <h1 class="product_title">{{- item.product.title | escape -}}</h1>
+                      <h1 class="product_subtitle"></h1>
+                      <quantity-input-custom class="quantity_control_container">
+                        <button class="plus" name="plus" type="button">+</button>
+                        <div class="quantity_text">
+                          <input
+                            name="updates[]"
+                            value="{{ item.quantity }}"
+                            id="Drawer-quantity-Custom-{{ item.index | plus: 1 }}"
+                            data-index="{{ item.index | plus: 1 }}"
+                            type="number"
+                            {% # theme-check-disable %}
+                            data-cart-quantity="{{ cart | item_count_for_variant: item.variant.id }}"
+                            min="{{ item.variant.quantity_rule.min }}"
+                            {% if item.variant.quantity_rule.max != null %}
+                              max="{{ item.variant.quantity_rule.max }}"
+                            {% endif %}
+                            step="{{ item.variant.quantity_rule.increment }}"
+                            {% # theme-check-enable %}
+                            disabled
+                          >
+                        </div>
+                        <button class="minus" name="minus" type="button">-</button>
+                      </quantity-input-custom>
+                    </div>
+                    <div class="cart_right_section">
+                      <div class="price_product">
+                        <span>{{ item.price | money }}</span>
+                      </div>
+                      <custom-cart-remove-button
+                        id="CartDrawer-Remove-{{ item.index | plus: 1 }}"
+                        data-index="{{ item.index | plus: 1 }}"
+                      >
+                        <button class="remove_item_cart"><img src="{{"recycle-bin.png" | asset_img_url}}" alt=""></button>
+                      </custom-cart-remove-button>
+                    </div>
+                  </div>
+                {%- endfor -%}
+              </div>
+            </cart-drawer-custom-items>
+            <div class="footer_cart_drawer" id="footer_cart_drawer">
+              <div class="subtotal_container">
+                <span>Subtotal ({{ cart.item_count }} items)</span>
+                <span>{{ cart.total_price | money_with_currency }}</span>
+              </div>
+              <button
+                type="submit"
+                id="CartDrawer-Checkout"
+                class="checkout_custom_btn"
+                name="checkout"
+                form="CartDrawerCustom-Form"
+              >
+                <img src="{{"padlock.png" |  asset_img_url}}" alt="">
+                <span>Check out</span>
+              </button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+      
+    </div>
+  </div>
+</cart-drawer-custom>
